@@ -22,3 +22,4 @@ app.add_middleware(
 app.include_router(inserting_router)
 app.include_router(ordering_router)
 app.include_router(verbrewrite_router)
+app.include_router(vocablanks_router)
