@@ -3,26 +3,34 @@ import random
 from typing import List, Dict
 from fastapi import FastAPI
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+# CORS 설정: Tistory 도메인만 허용
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://easyenough.tistory.com"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class TextPayload(BaseModel):
     text: str
 
 CIRCLED = ["①", "②", "③", "④", "⑤"]
 
-
 def split_paragraph_into_sentences(text: str) -> List[str]:
     text = text.replace("\r\n", " ").replace("\n", " ")
     matches = re.findall(r"[^.!?]+[.!?]+", text)
     return [m.strip() for m in matches] if matches else []
 
-
 def generate_insertion_problem(sentences: List[str], insert_index: int) -> Dict[str, str]:
     n = len(sentences)
     given = sentences[insert_index]
     rest = sentences[:insert_index] + sentences[insert_index + 1 :]
-    paragraph: List[str] = []
+    paragraph = []
     answer = None
 
     if n == 5:
@@ -53,13 +61,11 @@ def generate_insertion_problem(sentences: List[str], insert_index: int) -> Dict[
     )
     return {"text": text, "answer": answer}
 
-
 def generate_all_insertion_problems(text: str) -> List[Dict[str, str]]:
     sentences = split_paragraph_into_sentences(text)
     n = len(sentences)
     if n < 5:
         return [{"error": "문장 수가 5개 이상이어야 합니다."}]
-
     eligible = [i for i in range(5)] if n == 5 else [n - 6 + i for i in range(5)]
     results = []
     for i, idx in enumerate(eligible):
@@ -67,11 +73,10 @@ def generate_all_insertion_problems(text: str) -> List[Dict[str, str]]:
         results.append({"number": i + 1, "problem": prob["text"], "answer": prob["answer"]})
     return results
 
-
 def get_valid_4_chunk_combinations(n: int) -> List[List[int]]:
-    result: List[List[int]] = []
+    result = []
 
-    def dfs(current: List[int], total: int) -> None:
+    def dfs(current: List[int], total: int):
         if len(current) == 4 and total == n:
             result.append(current[:])
             return
@@ -84,7 +89,6 @@ def get_valid_4_chunk_combinations(n: int) -> List[List[int]]:
     dfs([], 0)
     return result
 
-
 def chunk_sentences(sentences: List[str], sizes: List[int]) -> List[str]:
     result = []
     idx = 0
@@ -92,7 +96,6 @@ def chunk_sentences(sentences: List[str], sizes: List[int]) -> List[str]:
         result.append(" ".join(sentences[idx : idx + size]))
         idx += size
     return result
-
 
 def generate_single_order_question(o: str, p: str, q: str, r: str) -> Dict[str, str]:
     perms = [
@@ -125,11 +128,9 @@ def generate_single_order_question(o: str, p: str, q: str, r: str) -> Dict[str, 
 
     return {"question": question_text, "answer": answer}
 
-
 def generate_all_order_questions(sentences: List[str]) -> List[Dict[str, str]]:
     if len(sentences) < 4:
         return [{"error": "문장 수 부족"}]
-
     results = []
     combinations = get_valid_4_chunk_combinations(len(sentences))
     for i, sizes in enumerate(combinations):
@@ -138,14 +139,11 @@ def generate_all_order_questions(sentences: List[str]) -> List[Dict[str, str]]:
         results.append({"number": i + 1, "problem": qa["question"], "answer": qa["answer"]})
     return results
 
-
 @app.post("/inserting")
 async def inserting(payload: TextPayload):
     return generate_all_insertion_problems(payload.text)
-
 
 @app.post("/ordering")
 async def ordering(payload: TextPayload):
     sentences = split_paragraph_into_sentences(payload.text)
     return generate_all_order_questions(sentences)
-
