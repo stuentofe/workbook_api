@@ -6,7 +6,7 @@ from api.inserting import router as inserting_router
 from api.ordering import router as ordering_router
 from api.verbrewrite import router as verbrewrite_router
 from api.vocablanks import router as vocablanks_router
-from api.generate_2224 import router as gen2224_route
+from api.generate_2224 import router as gen2224_router
 
 # 앞으로 추가될 유형들도 여기에 계속 include 하면 됨
 
