@@ -1,30 +1,29 @@
-# api/vocablanks.py
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import List, Dict
+from typing import List
 import spacy
 
-router = APIRouter()
 nlp = spacy.load("en_core_web_sm")
+
+router = APIRouter()
 
 class SentenceItem(BaseModel):
     num: int
     text: str
 
-class SentenceList(BaseModel):
+class SentencesPayload(BaseModel):
     sentences: List[SentenceItem]
 
 @router.post("/vocablanks")
-def vocablanks_api(payload: SentenceList):
+def vocablanks_api(payload: SentencesPayload):
     return generate_vocablanks(payload.sentences)
 
-
-def generate_vocablanks(sentences: List[Dict]) -> Dict[str, str]:
+def generate_vocablanks(sentences):
     blanks = []
     answers = []
 
     for item in sentences:
-        sent = item["text"]
+        sent = item.text
         doc = nlp(sent)
 
         total_words = len([t for t in doc if not t.is_punct and not t.is_space])
@@ -34,7 +33,7 @@ def generate_vocablanks(sentences: List[Dict]) -> Dict[str, str]:
 
         for chunk in doc.noun_chunks:
             tokens = [t for t in chunk if t.pos_ in {"NOUN", "PROPN", "ADJ"}]
-            if len(tokens) >= 1:
+            if tokens:
                 text = " ".join(t.text for t in tokens)
                 candidates.append((text, chunk.start_char, chunk.end_char, chunk.start))
 
@@ -51,8 +50,8 @@ def generate_vocablanks(sentences: List[Dict]) -> Dict[str, str]:
             clean_candidates.append((text, start, end, idx))
 
         if not clean_candidates:
-            blanks.append(f"{item['num']}. {sent}")
-            answers.append(f"{item['num']}. (no blanks)")
+            blanks.append(f"{item.num}. {sent}")
+            answers.append(f"{item.num}. (no blanks)")
             continue
 
         spacing = len(doc) / num_blanks
@@ -70,7 +69,7 @@ def generate_vocablanks(sentences: List[Dict]) -> Dict[str, str]:
                 selected.append(closest)
                 used.add(closest[3])
 
-        answers.append(f"{item['num']}. {', '.join(x[0] for x in selected)}")
+        answers.append(f"{item.num}. {', '.join(x[0] for x in selected)}")
 
         modified = sent
         offset = 0
@@ -79,7 +78,7 @@ def generate_vocablanks(sentences: List[Dict]) -> Dict[str, str]:
             modified = modified[:start - offset] + blank_phrase + modified[end - offset:]
             offset += (end - start) - len(blank_phrase)
 
-        blanks.append(f"{item['num']}. {modified.strip()}")
+        blanks.append(f"{item.num}. {modified.strip()}")
 
     return {
         "problem": "\n\n\n\n".join(blanks),
