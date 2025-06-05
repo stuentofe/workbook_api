@@ -25,7 +25,7 @@ def generate_insertion_problem(sentences: List[str], insert_index: int) -> Dict[
     if n == 5:
         for i in range(len(rest) + 1):
             if i < 5:
-                paragraph.append(CIRCLED[i])
+                paragraph.append(f"( {CIRCLED[i]} )")
             if i < len(rest):
                 paragraph.append(rest[i])
         answer = CIRCLED[insert_index]
@@ -37,7 +37,7 @@ def generate_insertion_problem(sentences: List[str], insert_index: int) -> Dict[
             answer = CIRCLED[insertion_points.index(insert_index)]
         for i in range(len(rest) + 1):
             if i in label_map:
-                paragraph.append(label_map[i])
+                paragraph.append(f"( {label_map[i]} )")
             if i < len(rest):
                 paragraph.append(rest[i])
 
